@@ -121,20 +121,7 @@ const Game: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-full flex flex-col items-center gap-2">
-          <div className="text-5xl font-bold">{target}</div>
-          {showSolution && (
-            <details className={`${darkMode ? "bg-zinc-800 border-zinc-700" : "bg-zinc-100 border-zinc-300"} w-full border rounded p-4 mt-2`}
-                     open={showSolution}>
-              <summary className="cursor-pointer font-semibold text-lg">💡 Solution</summary>
-              <div className="space-y-2 mt-2">
-                {targetAndSolution.solution.map((step, index) => (
-                  <p key={index} className="font-mono">{step}</p>
-                ))}
-              </div>
-            </details>
-          )}
-        </div>
+        <div className="text-5xl font-bold text-center">{target}</div>
 
         <div className="grid grid-cols-3 gap-4">
           {numberSetHistory[currentMove].map((num, idx) => (
@@ -170,10 +157,7 @@ const Game: React.FC = () => {
           </button>
         </div>
 
-        <div className="text-center space-y-1">
-          <p className="text-xl">⭐ <span className="font-semibold text-amber-400">{earnedStars}</span> Earned</p>
-          <p className={`text-sm ${darkMode ? "text-zinc-400" : "text-zinc-600"}`}>Total Stars: {totalStars}</p>
-        </div>
+        <p className="text-xl">⭐ <span className="font-semibold text-amber-400">{earnedStars}</span> Earned</p>
 
         <button
           onClick={handleCollectClick}
@@ -187,16 +171,35 @@ const Game: React.FC = () => {
           Collect Stars
         </button>
 
-        <details className={`${darkMode ? "bg-zinc-800 border-zinc-700" : "bg-zinc-100 border-zinc-300"} w-full border rounded p-4`}>
-          <summary className="cursor-pointer font-semibold text-lg">📝 Moves</summary>
-          <ul className={`mt-2 text-sm pl-5 max-h-40 overflow-y-auto ${darkMode ? "text-zinc-300" : "text-zinc-700"}`}>
-            {moveHistory.length > 0 ? (
-              moveHistory.map((move, i) => <li key={i}>{move}</li>)
-            ) : (
-              <li className="text-zinc-500">No moves yet.</li>
-            )}
-          </ul>
-        </details>
+        {/* Solution and Moves section */}
+        <div className="w-full flex flex-col gap-2">
+          {showSolution && (
+            <details className={`${darkMode ? "bg-zinc-800 border-zinc-700" : "bg-zinc-100 border-zinc-300"} w-full border rounded`}
+                     open={showSolution}>
+              <summary className="cursor-pointer font-semibold text-lg px-4 py-2">💡 Solution</summary>
+              <div className="px-4 pb-4">
+                <div className="space-y-2 mt-2">
+                  {targetAndSolution.solution.map((step, index) => (
+                    <p key={index} className="font-mono">{step}</p>
+                  ))}
+                </div>
+              </div>
+            </details>
+          )}
+
+          <details className={`${darkMode ? "bg-zinc-800 border-zinc-700" : "bg-zinc-100 border-zinc-300"} w-full border rounded`}>
+            <summary className="cursor-pointer font-semibold text-lg px-4 py-2">📝 Moves</summary>
+            <div className="px-4 pb-4">
+              <ul className={`mt-2 text-sm max-h-40 overflow-y-auto ${darkMode ? "text-zinc-300" : "text-zinc-700"}`}>
+                {moveHistory.length > 0 ? (
+                  moveHistory.map((move, i) => <li key={i}>{move}</li>)
+                ) : (
+                  <li className="text-zinc-500">No moves yet.</li>
+                )}
+              </ul>
+            </div>
+          </details>
+        </div>
 
         {/* Statistics Modal */}
         {showStatistics && (
