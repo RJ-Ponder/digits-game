@@ -186,9 +186,12 @@ function useGameLogic() {
       setPositionHistory(prevPositions);
       setCurrentMove(currentMove - 1);
 
-      const lastPos = prevPositions[prevPositions.length - 1] ?? null;
-      setSelectedPosition(lastPos);
-      setFirstOperandPosition(lastPos);
+      // Reset all selection state when undoing
+      setSelectedPosition(null);
+      setFirstOperandPosition(null);
+      setFirstOperandNumber(null);
+      setOperationGroup({ sign: null, function: null, result: null });
+      setSelectedOperator(null);
     } else {
       resetBoard();
     }
