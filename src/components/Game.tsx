@@ -48,6 +48,9 @@ const Game: React.FC = () => {
     shakePosition,
     showStatistics,
     setShowStatistics,
+    puzzleSet,
+    switchToPuzzle,
+    startNewTestSet,
   } = useGameLogic();
 
   const { target } = targetAndSolution;
@@ -121,7 +124,35 @@ const Game: React.FC = () => {
           </div>
         </div>
 
-        <div className="text-5xl font-bold text-center">{target}</div>
+        {/* Add progress bar below top menu */}
+        <div className="w-full flex gap-1">
+          {puzzleSet.puzzles.map((puzzle, index) => (
+            <button
+              key={puzzle.id}
+              onClick={() => switchToPuzzle(index)}
+              className={`flex-1 h-2 rounded transition-colors duration-75 ${
+                index === puzzleSet.currentPuzzleIndex
+                  ? "bg-indigo-500"
+                  : puzzle.stars > 0
+                  ? "bg-amber-400"
+                  : darkMode
+                  ? "bg-zinc-700"
+                  : "bg-zinc-200"
+              }`}
+              aria-label={`Puzzle ${index + 1}${puzzle.stars ? ` (${puzzle.stars} stars)` : ''}`}
+            >
+              {puzzle.stars > 0 && (
+                <div className="relative">
+                  <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs">
+                    {'⭐'.repeat(puzzle.stars)}
+                  </div>
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div className="text-5xl font-bold text-center">{puzzleSet.puzzles[puzzleSet.currentPuzzleIndex].target}</div>
 
         <div className="grid grid-cols-3 gap-4">
           {numberSetHistory[currentMove].map((num, idx) => (
@@ -169,6 +200,13 @@ const Game: React.FC = () => {
         >
           <StarIcon className="w-5 h-5" />
           Collect Stars
+        </button>
+
+        <button
+          onClick={startNewTestSet}
+          className="px-4 py-2 text-sm bg-zinc-700 text-white rounded hover:bg-zinc-600"
+        >
+          New Test Set
         </button>
 
         {/* Solution and Moves section */}
@@ -252,17 +290,17 @@ const Game: React.FC = () => {
               {earnedStars === 3 ? (
                 <>
                   <h2 className="text-2xl font-bold mb-4">🎉 Amazing Job! 🎉</h2>
-                  <p className="mb-4">You earned all 3 ⭐⭐⭐ stars by using all numbers in a perfect chain!</p>
+                  <p className="mb-4">You earned all 3 ⭐⭐⭐ stars on puzzle {puzzleSet.currentPuzzleIndex + 1} by using all numbers in a perfect chain!</p>
                 </>
               ) : earnedStars === 2 ? (
                 <>
                   <h2 className="text-xl font-bold mb-4">🎯 Great Work!</h2>
-                  <p className="mb-4">You earned 2 ⭐⭐ stars by using all numbers! Want to try for 3 stars with a chain solution?</p>
+                  <p className="mb-4">You earned 2 ⭐⭐ stars on puzzle {puzzleSet.currentPuzzleIndex + 1}! Want to try for 3 stars with a chain solution?</p>
                 </>
               ) : (
                 <>
                   <h2 className="text-xl font-bold mb-4">👍 Good Job!</h2>
-                  <p className="mb-4">You earned 1 ⭐ star! Want to try using more numbers for additional stars?</p>
+                  <p className="mb-4">You earned 1 ⭐ star on puzzle {puzzleSet.currentPuzzleIndex + 1}! Want to try using more numbers for additional stars?</p>
                 </>
               )}
               <div className="flex gap-4 justify-center">
@@ -275,11 +313,11 @@ const Game: React.FC = () => {
                 <button
                   onClick={() => {
                     setShowCollectModal(false);
-                    startNewGame();
+                    switchToPuzzle((puzzleSet.currentPuzzleIndex + 1) % puzzleSet.puzzles.length);
                   }}
                   className="px-4 py-2 bg-amber-500 text-black rounded hover:bg-amber-600"
                 >
-                  New Game
+                  Next Puzzle
                 </button>
               </div>
             </div>

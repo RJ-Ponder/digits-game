@@ -13,3 +13,17 @@ export interface GameInfo {
   id: string;
   stars: number;
 }
+
+export interface DailyPuzzle {
+  id: number;
+  numberSet: number[];
+  target: number;
+  solution: string[];
+  stars: number;
+}
+
+export interface DailyPuzzleSet {
+  seed: string;
+  puzzles: DailyPuzzle[];
+  currentPuzzleIndex: number;
+}

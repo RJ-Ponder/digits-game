@@ -1,14 +1,77 @@
 import { v4 as uuidv4 } from "uuid";
-import { TargetAndSolution } from "../types";
+import { TargetAndSolution, DailyPuzzle } from "../types";
 
 // Constants
 const NUMBER_SET_SIZE = 6;
 const NUMBER_SET_MIN = 1;
-const NUMBER_SET_MAX = 15;
-const TARGET_MIN = -20;
-const TARGET_MAX = 50;
+const NUMBER_SET_MAX = 20;
+const TARGET_MIN = -25;
+const TARGET_MAX = 75;
+const PUZZLES_PER_DAY = 5;
+
+export function getDailyPuzzleSeed() {
+  const date = new Date();
+  const easternDate = new Date(date.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  return `${easternDate.getFullYear()}-${easternDate.getMonth()}-${easternDate.getDate()}`;
+}
+
+// Deterministic random number generator using a seed string
+function seededRandom(seed: string) {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  const x = Math.sin(hash) * 10000;
+  return x - Math.floor(x);
+}
+
+function getRandomIntWithSeed(min: number, max: number, seed: string) {
+  const random = seededRandom(seed);
+  return Math.floor(random * (max - min + 1)) + min;
+}
+
+export function generateDailyPuzzles(forceSeed?: string): DailyPuzzle[] {
+  const seed = forceSeed || getDailyPuzzleSeed();
+  const puzzles: DailyPuzzle[] = [];
+
+  for (let i = 0; i < PUZZLES_PER_DAY; i++) {
+    const puzzleSeed = `${seed}-puzzle-${i}`;
+    const numberSet = generateNumberSetWithSeed(puzzleSeed);
+    const { target, solution } = generateTargetAndSolution(numberSet);
+    puzzles.push({
+      id: i,
+      numberSet,
+      target,
+      solution,
+      stars: 0
+    });
+  }
+
+  return puzzles;
+}
+
+export function generateNumberSetWithSeed(seed: string): number[] {
+  const numberSet: number[] = [];
+  let attempts = 0;
+  
+  while (numberSet.length < NUMBER_SET_SIZE && attempts < 100) {
+    const randomInt = getRandomIntWithSeed(
+      NUMBER_SET_MIN,
+      NUMBER_SET_MAX,
+      `${seed}-number-${attempts}`
+    );
+    if (!numberSet.includes(randomInt)) {
+      numberSet.push(randomInt);
+    }
+    attempts++;
+  }
+
+  return numberSet.sort((a, b) => a - b);
+}
 
 export function generateNumberSet(): number[] {
+  // Keep this for testing purposes
   const numberSet: number[] = [];
 
   while (numberSet.length < NUMBER_SET_SIZE) {
@@ -28,7 +91,6 @@ function getRandomIntInclusive(min: number, max: number): number {
 }
 
 export function generateTargetAndSolution(numberSet: (number | null)[]): TargetAndSolution {
-  // Filter out null values and convert to number[]
   const validNumbers = numberSet.filter((n): n is number => n !== null);
   const shuffled = shuffle([...validNumbers]);
   let target = shuffled[0];

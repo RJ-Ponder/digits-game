@@ -4,14 +4,18 @@ import {
   generateTargetAndSolution,
   generateGameInfo,
   saveDataToLocalStorage,
-  loadDataFromLocalStorage
+  loadDataFromLocalStorage,
+  generateDailyPuzzles,
+  getDailyPuzzleSeed
 } from './helpers';
+import { DailyPuzzle, DailyPuzzleSet } from '../types';
 
 const STARTING_NUMBER_SET = 'sns';
 const TARGET_AND_SOLUTION = 'tas';
 const GAME_INFO = 'gi';
 const TOTAL_STARS = 'ts';
 const STATISTICS = 'stats';
+const DAILY_PUZZLE_SET = 'dps';
 
 type OperationGroup = {
   sign: string | null;
@@ -45,12 +49,32 @@ function useGameLogic() {
     return [state, setState];
   };
 
+  const [puzzleSet, setPuzzleSet] = useState<DailyPuzzleSet>(() => {
+    const loaded = loadDataFromLocalStorage<DailyPuzzleSet>(DAILY_PUZZLE_SET);
+    const currentSeed = getDailyPuzzleSeed();
+    
+    if (!loaded || loaded.seed !== currentSeed) {
+      const newPuzzles = generateDailyPuzzles();
+      const newSet = {
+        seed: currentSeed,
+        puzzles: newPuzzles,
+        currentPuzzleIndex: 0
+      };
+      saveDataToLocalStorage(DAILY_PUZZLE_SET, newSet);
+      return newSet;
+    }
+    
+    return loaded;
+  });
+
+  const currentPuzzle = puzzleSet.puzzles[puzzleSet.currentPuzzleIndex];
+
   const [startingNumberSet, setStartingNumberSet] = useLocalStorageState<(number | null)[]>(STARTING_NUMBER_SET, generateNumberSet());
   const [targetAndSolution, setTargetAndSolution] = useLocalStorageState<TargetAndSolution>(TARGET_AND_SOLUTION, generateTargetAndSolution(startingNumberSet));
   const [gameInfo, setGameInfo] = useLocalStorageState<GameInfo>(GAME_INFO, generateGameInfo());
   const [totalStars, setTotalStars] = useLocalStorageState<number>(TOTAL_STARS, 0);
 
-  const [numberSetHistory, setNumberSetHistory] = useState<(number | null)[][]>([startingNumberSet]);
+  const [numberSetHistory, setNumberSetHistory] = useState<(number | null)[][]>([currentPuzzle.numberSet]);
   const [currentMove, setCurrentMove] = useState<number>(0);
   const [firstOperandNumber, setFirstOperandNumber] = useState<number | null>(null);
   const [firstOperandPosition, setFirstOperandPosition] = useState<number | null>(null);
@@ -135,9 +159,8 @@ function useGameLogic() {
       setSelectedOperator(null);
       setOperationGroup({ sign: null, function: null, result: null });
     } else {
-      // Show shake animation on invalid operation
       setShakePosition(position);
-      setTimeout(() => setShakePosition(null), 200); // Remove shake after animation
+      setTimeout(() => setShakePosition(null), 200);
       resetBoard();
     }
   }
@@ -177,24 +200,29 @@ function useGameLogic() {
     if (!canEarnMoreStars) return;
     
     const stars = calculateStars();
-    if (stars > 0 && !showSolution) {  // Add check for showSolution
-      // Show the collection modal
+    if (stars > 0 && !showSolution) {
       setShowCollectModal(true);
       
-      // If we've already collected these stars, don't add them again
-      if (stars <= gameInfo.stars) {
+      if (stars <= currentPuzzle.stars) {
         return;
       }
       
-      // Update game info and total stars
-      const starDifference = stars - gameInfo.stars;
-      const updatedGameInfo = { ...gameInfo, stars };
-      setGameInfo(updatedGameInfo);
-      setTotalStars(prev => prev + starDifference);
+      const updatedPuzzles = [...puzzleSet.puzzles];
+      updatedPuzzles[puzzleSet.currentPuzzleIndex] = {
+        ...currentPuzzle,
+        stars
+      };
       
-      // Update statistics
+      const newPuzzleSet = {
+        ...puzzleSet,
+        puzzles: updatedPuzzles
+      };
+      
+      setPuzzleSet(newPuzzleSet);
+      saveDataToLocalStorage(DAILY_PUZZLE_SET, newPuzzleSet);
+      
       const stats = loadDataFromLocalStorage(STATISTICS) || {};
-      stats[gameInfo.id] = stars;
+      stats[currentPuzzle.id] = stars;
       saveDataToLocalStorage(STATISTICS, stats);
     }
   }
@@ -244,17 +272,14 @@ function useGameLogic() {
     const newTarget = generateTargetAndSolution(newSet);
     const newInfo = generateGameInfo();
 
-    // Reset all local storage states first
     localStorage.removeItem(STARTING_NUMBER_SET);
     localStorage.removeItem(TARGET_AND_SOLUTION);
     localStorage.removeItem(GAME_INFO);
 
-    // Set new states
     setStartingNumberSet(newSet);
     setTargetAndSolution(newTarget);
     setGameInfo(newInfo);
     
-    // Reset game state
     setNumberSetHistory([newSet]);
     setCurrentMove(0);
     setMoveHistory([]);
@@ -263,13 +288,62 @@ function useGameLogic() {
     setShowSolution(false);
     setEarnedStars(0);
     
-    // Reset all modal states
     setShowCollectModal(false);
     setShowNewGameWarning(false);
     setShowSolutionWarning(false);
     setShowSolution(false);
     
     resetBoard();
+  }
+
+  function startNewTestSet() {
+    const newPuzzles = generateDailyPuzzles(Date.now().toString());
+    const newSet = {
+      seed: Date.now().toString(),
+      puzzles: newPuzzles,
+      currentPuzzleIndex: 0
+    };
+    
+    setPuzzleSet(newSet);
+    saveDataToLocalStorage(DAILY_PUZZLE_SET, newSet);
+    
+    setNumberSetHistory([newPuzzles[0].numberSet]);
+    setCurrentMove(0);
+    setMoveHistory([]);
+    setPositionHistory([]);
+    setCanEarnMoreStars(true);
+    setShowSolution(false);
+    setEarnedStars(0);
+    
+    setShowCollectModal(false);
+    setShowNewGameWarning(false);
+    setShowSolutionWarning(false);
+    setShowSolution(false);
+    
+    resetBoard();
+  }
+
+  function switchToPuzzle(index: number) {
+    if (index === puzzleSet.currentPuzzleIndex) return;
+    
+    setPuzzleSet(prev => ({
+      ...prev,
+      currentPuzzleIndex: index
+    }));
+    
+    setNumberSetHistory([puzzleSet.puzzles[index].numberSet]);
+    setCurrentMove(0);
+    setMoveHistory([]);
+    setPositionHistory([]);
+    setCanEarnMoreStars(true);
+    setShowSolution(false);
+    setEarnedStars(0);
+    resetBoard();
+    
+    saveDataToLocalStorage(DAILY_PUZZLE_SET, {
+      ...puzzleSet,
+      currentPuzzleIndex: index
+    });
   }
 
   useEffect(() => {
@@ -353,6 +427,10 @@ function useGameLogic() {
     setShakePosition,
     showStatistics,
     setShowStatistics,
+    puzzleSet,
+    currentPuzzle,
+    switchToPuzzle,
+    startNewTestSet,
   };
 }
 
