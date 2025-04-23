@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import { TargetAndSolution } from "../types";
 
 // Constants
 const NUMBER_SET_SIZE = 6;
@@ -26,8 +27,10 @@ function getRandomIntInclusive(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
-export function generateTargetAndSolution(numberSet: number[]) {
-  const shuffled = shuffle([...numberSet]);
+export function generateTargetAndSolution(numberSet: (number | null)[]): TargetAndSolution {
+  // Filter out null values and convert to number[]
+  const validNumbers = numberSet.filter((n): n is number => n !== null);
+  const shuffled = shuffle([...validNumbers]);
   let target = shuffled[0];
   const solution: string[] = [];
 

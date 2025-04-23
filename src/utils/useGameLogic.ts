@@ -67,6 +67,13 @@ function useGameLogic() {
   const [twoStarGames, setTwoStarGames] = useState<number>(0);
   const [threeStarGames, setThreeStarGames] = useState<number>(0);
 
+  const [showSolution, setShowSolution] = useState<boolean>(false);
+  const [canEarnMoreStars, setCanEarnMoreStars] = useState<boolean>(true);
+  const [showCollectModal, setShowCollectModal] = useState<boolean>(false);
+  const [showNewGameWarning, setShowNewGameWarning] = useState<boolean>(false);
+  const [showResetWarning, setShowResetWarning] = useState<boolean>(false);
+  const [showSolutionWarning, setShowSolutionWarning] = useState<boolean>(false);
+
   function resetBoard(isUndo = false) {
     setOperationGroup({ sign: null, function: null, result: null });
     setSelectedOperator(null);
@@ -148,17 +155,71 @@ function useGameLogic() {
     }
   }
 
-  function handleCollectClick() {
-    const collectedStars = gameInfo.stars;
-    if (earnedStars > collectedStars) {
-      const updatedGameInfo = { id: gameInfo.id, stars: earnedStars };
-      setGameInfo(updatedGameInfo);
-      saveDataToLocalStorage(GAME_INFO, updatedGameInfo);
+  function calculateStars(): number {
+    const num = numberSetHistory[currentMove]?.[selectedPosition ?? 0];
+    if (num !== targetAndSolution.target) return 0;
+    
+    const usedNumbers = moveHistory.length + 1;
+    const isChain = isChainOperation();
+    
+    if (usedNumbers === 6 && isChain) return 3;
+    if (usedNumbers === 6) return 2;
+    return 1;
+  }
 
-      const newTotal = totalStars + (earnedStars - collectedStars);
-      setTotalStars(newTotal);
+  function handleCollectClick() {
+    if (!canEarnMoreStars) return;
+    
+    const stars = calculateStars();
+    if (stars > 0) {
+      // Show the collection modal
+      setShowCollectModal(true);
+      
+      // If we've already collected these stars, don't add them again
+      if (stars <= gameInfo.stars) {
+        return;
+      }
+      
+      // Update game info and total stars
+      const starDifference = stars - gameInfo.stars;
+      const updatedGameInfo = { ...gameInfo, stars };
+      setGameInfo(updatedGameInfo);
+      setTotalStars(prev => prev + starDifference);
+      
+      // Update statistics
+      const stats = loadDataFromLocalStorage(STATISTICS) || {};
+      stats[gameInfo.id] = stars;
+      saveDataToLocalStorage(STATISTICS, stats);
     }
-    setEarnedStars(0);
+  }
+
+  function handleGiveUp() {
+    if (canEarnMoreStars) {
+      setShowSolutionWarning(true);
+    }
+  }
+
+  function confirmShowSolution() {
+    setShowSolutionWarning(false);
+    setCanEarnMoreStars(false);
+    setShowSolution(true);
+  }
+
+  function confirmNewGame() {
+    if (earnedStars > gameInfo.stars && canEarnMoreStars) {
+      setShowNewGameWarning(true);
+    } else {
+      startNewGame();
+    }
+  }
+
+  function confirmResetStatistics() {
+    setShowResetWarning(true);
+  }
+
+  function actuallyResetStatistics() {
+    resetStatistics();
+    setShowResetWarning(false);
   }
 
   function resetStatistics() {
@@ -177,13 +238,31 @@ function useGameLogic() {
     const newTarget = generateTargetAndSolution(newSet);
     const newInfo = generateGameInfo();
 
+    // Reset all local storage states first
+    localStorage.removeItem(STARTING_NUMBER_SET);
+    localStorage.removeItem(TARGET_AND_SOLUTION);
+    localStorage.removeItem(GAME_INFO);
+
+    // Set new states
     setStartingNumberSet(newSet);
     setTargetAndSolution(newTarget);
     setGameInfo(newInfo);
+    
+    // Reset game state
     setNumberSetHistory([newSet]);
     setCurrentMove(0);
     setMoveHistory([]);
     setPositionHistory([]);
+    setCanEarnMoreStars(true);
+    setShowSolution(false);
+    setEarnedStars(0);
+    
+    // Reset all modal states
+    setShowCollectModal(false);
+    setShowNewGameWarning(false);
+    setShowSolutionWarning(false);
+    setShowSolution(false);
+    
     resetBoard();
   }
 
@@ -247,7 +326,23 @@ function useGameLogic() {
     oneStarGames,
     twoStarGames,
     threeStarGames,
-    resetStatistics
+    resetStatistics,
+    showSolution,
+    setShowSolution,
+    canEarnMoreStars,
+    showCollectModal,
+    showNewGameWarning,
+    showResetWarning,
+    showSolutionWarning,
+    setShowSolutionWarning,
+    handleGiveUp,
+    confirmShowSolution,
+    confirmNewGame,
+    confirmResetStatistics,
+    actuallyResetStatistics,
+    setShowCollectModal,
+    setShowNewGameWarning,
+    setShowResetWarning,
   };
 }
 
