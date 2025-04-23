@@ -126,18 +126,16 @@ function useGameLogic() {
       return;
     }
 
-    // If no number is selected, this becomes the first operand
-    if (firstOperandNumber === null) {
-      setFirstOperandNumber(clickedNumber);
-      setFirstOperandPosition(position);
-      setSelectedPosition(position);
+    // If an operator is selected and we have a first operand, perform the operation
+    if (operationGroup.function !== null && firstOperandNumber !== null) {
+      performOperation(clickedNumber, position);
       return;
     }
 
-    // Only allow selecting a second number if an operator is selected
-    if (operationGroup.function !== null) {
-      performOperation(clickedNumber, position);
-    }
+    // Otherwise, this becomes the new first operand
+    setFirstOperandNumber(clickedNumber);
+    setFirstOperandPosition(position);
+    setSelectedPosition(position);
   }
 
   function handleOperatorClick(fn: (a: number, b: number) => number, sign: string) {
@@ -323,7 +321,18 @@ function useGameLogic() {
   }
 
   function resetStatistics() {
+    const newStats: GameStatistics = {
+      daysPlayed: 0,
+      currentStreak: 0,
+      bestStreak: 0,
+      perfectDays: 0,
+      totalStars: 0,
+      lastPlayedDate: '',
+      dailyStats: {}
+    };
+    setStatistics(newStats);
     localStorage.removeItem(STATISTICS);
+    saveDataToLocalStorage(STATISTICS, newStats);
     setGamesPlayed(0);
     setZeroStarGames(0);
     setOneStarGames(0);

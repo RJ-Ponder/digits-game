@@ -68,53 +68,71 @@ const Game: React.FC = () => {
   return (
     <div className={`${darkMode ? "bg-zinc-900 text-white" : "bg-white text-zinc-900"} min-h-screen transition-colors duration-75 font-sans`}>
       <div className="max-w-xl mx-auto flex flex-col gap-6 items-center p-6">
-        <div className="w-full flex justify-between items-center mb-4">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-75"
-              aria-label="Toggle dark mode"
+        {/* New header layout */}
+        <div className="w-full flex flex-col gap-4">
+          <div className="w-full flex justify-between items-center">
+            {/* Ponder Games logo/link */}
+            <a 
+              href="https://pondergames.com" 
+              className="text-lg font-bold tracking-tight hover:opacity-80 transition-opacity"
             >
-              {darkMode ? <SunIcon className="w-6 h-6" /> : <MoonIcon className="w-6 h-6" />}
-            </button>
-            <button
-              onClick={() => setShowStatistics(true)}
-              className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-75"
-              aria-label="Show statistics"
-            >
-              <ChartBarIcon className="w-6 h-6" />
-            </button>
-            <button
-              onClick={() => setShowHowToPlay(true)}
-              className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-75"
-              aria-label="How to play"
-            >
-              <QuestionMarkCircleIcon className="w-6 h-6" />
-            </button>
-            <button
-              onClick={() => setShowAbout(true)}
-              className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-75"
-              aria-label="About"
-            >
-              <InformationCircleIcon className="w-6 h-6" />
-            </button>
+              <span className="bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
+                Ponder Games
+              </span>
+            </a>
+
+            {/* Digits logo */}
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl font-extrabold tracking-tighter bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">
+                Digits
+              </span>
+            </div>
+
+            {/* Controls moved to below the logos */}
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={handleGiveUp}
-              className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-75"
-              aria-label="Give up"
-              disabled={!canEarnMoreStars}
-            >
-              <FlagIcon className={`w-6 h-6 ${!canEarnMoreStars ? "opacity-50" : ""}`} />
-            </button>
-            <button
-              onClick={confirmNewGame}
-              className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-75"
-              aria-label="New game"
-            >
-              <ArrowPathIcon className="w-6 h-6" />
-            </button>
+
+          {/* Menu buttons row */}
+          <div className="w-full flex justify-between items-center">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-75"
+                aria-label="Toggle dark mode"
+              >
+                {darkMode ? <SunIcon className="w-6 h-6" /> : <MoonIcon className="w-6 h-6" />}
+              </button>
+              <button
+                onClick={() => setShowStatistics(true)}
+                className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-75"
+                aria-label="Show statistics"
+              >
+                <ChartBarIcon className="w-6 h-6" />
+              </button>
+              <button
+                onClick={() => setShowHowToPlay(true)}
+                className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-75"
+                aria-label="How to play"
+              >
+                <QuestionMarkCircleIcon className="w-6 h-6" />
+              </button>
+              <button
+                onClick={() => setShowAbout(true)}
+                className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-75"
+                aria-label="About"
+              >
+                <InformationCircleIcon className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleGiveUp}
+                className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-75"
+                aria-label="Give up"
+                disabled={!canEarnMoreStars}
+              >
+                <FlagIcon className={`w-6 h-6 ${!canEarnMoreStars ? "opacity-50" : ""}`} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -198,13 +216,6 @@ const Game: React.FC = () => {
           Collect Stars
         </button>
 
-        <button
-          onClick={startNewTestSet}
-          className="px-4 py-2 text-sm bg-zinc-700 text-white rounded hover:bg-zinc-600"
-        >
-          New Test Set
-        </button>
-
         {/* Solution and Moves section */}
         <div className="w-full flex flex-col gap-2">
           {showSolution && (
@@ -275,7 +286,7 @@ const Game: React.FC = () => {
 
               <button
                 onClick={confirmResetStatistics}
-                className="text-red-400 underline hover:text-red-600 text-sm"
+                className="text-sm px-3 py-1.5 rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors duration-75"
               >
                 Reset Statistics
               </button>
