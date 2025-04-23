@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import useGameLogic from "../utils/useGameLogic";
-import { SunIcon, MoonIcon, QuestionMarkCircleIcon, InformationCircleIcon, ArrowPathIcon, StarIcon, FlagIcon, ChartBarIcon } from "@heroicons/react/24/solid";
+import GameHeader from "./GameHeader";
+import NumberGrid from "./NumberGrid";
+import GameControls from "./GameControls";
+import GameHistory from "./GameHistory";
+import { StatisticsModal, CollectStarsModal, HowToPlayModal, AboutModal } from "./modals/GameModals";
 
 const Game: React.FC = () => {
   const {
@@ -14,25 +18,12 @@ const Game: React.FC = () => {
     handleOperatorClick,
     handleUndoClick,
     handleCollectClick,
-    gamesPlayed,
-    zeroStarGames,
-    oneStarGames,
-    twoStarGames,
-    threeStarGames,
-    resetStatistics,
     showSolution,
-    setShowSolution,
     canEarnMoreStars,
     showCollectModal,
-    showNewGameWarning,
-    showResetWarning,
     handleGiveUp,
-    confirmNewGame,
     confirmResetStatistics,
-    actuallyResetStatistics,
     setShowCollectModal,
-    setShowNewGameWarning,
-    setShowResetWarning,
     showSolutionWarning,
     setShowSolutionWarning,
     confirmShowSolution,
@@ -42,11 +33,14 @@ const Game: React.FC = () => {
     puzzleSet,
     currentPuzzle,
     switchToPuzzle,
-    startNewTestSet,
     firstOperandNumber,
     statistics,
     getStarRating,
   } = useGameLogic();
+
+  const [darkMode, setDarkMode] = useState(true);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
 
   const operators = [
     { sign: "+", fn: (a: number, b: number) => a + b },
@@ -54,10 +48,6 @@ const Game: React.FC = () => {
     { sign: "×", fn: (a: number, b: number) => a * b },
     { sign: "÷", fn: (a: number, b: number) => a / b }
   ];
-
-  const [darkMode, setDarkMode] = useState(true);
-  const [showHowToPlay, setShowHowToPlay] = useState(false);
-  const [showAbout, setShowAbout] = useState(false);
 
   const handleModalOutsideClick = (e: React.MouseEvent<HTMLDivElement>, closeModal: () => void) => {
     if (e.target === e.currentTarget) {
@@ -68,139 +58,37 @@ const Game: React.FC = () => {
   return (
     <div className={`${darkMode ? "bg-zinc-900 text-white" : "bg-white text-zinc-900"} min-h-screen transition-colors duration-75 font-sans`}>
       <div className="max-w-xl mx-auto flex flex-col gap-6 items-center p-6">
-        {/* New header layout */}
-        <div className="w-full flex flex-col gap-4">
-          <div className="w-full flex justify-between items-center">
-            {/* Ponder Games logo/link */}
-            <a 
-              href="https://pondergames.com" 
-              className="text-lg font-bold tracking-tight hover:opacity-80 transition-opacity"
-            >
-              <span className="bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
-                Ponder Games
-              </span>
-            </a>
+        <GameHeader 
+          darkMode={darkMode}
+          toggleDarkMode={() => setDarkMode(!darkMode)}
+          onShowStatistics={() => setShowStatistics(true)}
+          onShowHowToPlay={() => setShowHowToPlay(true)}
+          onShowAbout={() => setShowAbout(true)}
+          onGiveUp={handleGiveUp}
+          canEarnMoreStars={canEarnMoreStars}
+          puzzles={puzzleSet.puzzles}
+          currentPuzzleIndex={puzzleSet.currentPuzzleIndex}
+          onSwitchPuzzle={switchToPuzzle}
+        />
 
-            {/* Digits logo */}
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-extrabold tracking-tighter bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">
-                Digits
-              </span>
-            </div>
+        <div className="text-5xl font-bold text-center">{currentPuzzle.target}</div>
 
-            {/* Controls moved to below the logos */}
-          </div>
+        <NumberGrid
+          numbers={numberSetHistory[currentMove]}
+          selectedPosition={selectedPosition}
+          shakePosition={shakePosition}
+          handleNumberClick={handleNumberClick}
+          darkMode={darkMode}
+        />
 
-          {/* Menu buttons row */}
-          <div className="w-full flex justify-between items-center">
-            <div className="flex gap-2">
-              <button
-                onClick={() => setDarkMode(!darkMode)}
-                className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-75"
-                aria-label="Toggle dark mode"
-              >
-                {darkMode ? <SunIcon className="w-6 h-6" /> : <MoonIcon className="w-6 h-6" />}
-              </button>
-              <button
-                onClick={() => setShowStatistics(true)}
-                className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-75"
-                aria-label="Show statistics"
-              >
-                <ChartBarIcon className="w-6 h-6" />
-              </button>
-              <button
-                onClick={() => setShowHowToPlay(true)}
-                className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-75"
-                aria-label="How to play"
-              >
-                <QuestionMarkCircleIcon className="w-6 h-6" />
-              </button>
-              <button
-                onClick={() => setShowAbout(true)}
-                className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-75"
-                aria-label="About"
-              >
-                <InformationCircleIcon className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleGiveUp}
-                className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-75"
-                aria-label="Give up"
-                disabled={!canEarnMoreStars}
-              >
-                <FlagIcon className={`w-6 h-6 ${!canEarnMoreStars ? "opacity-50" : ""}`} />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Add progress bar below top menu */}
-        <div className="w-full flex gap-1">
-          {puzzleSet.puzzles.map((puzzle, index) => (
-            <button
-              key={puzzle.id}
-              onClick={() => switchToPuzzle(index)}
-              className={`flex-1 h-2 rounded transition-colors duration-75 ${
-                index === puzzleSet.currentPuzzleIndex
-                  ? "bg-indigo-500"
-                  : puzzle.stars > 0
-                  ? "bg-amber-400"
-                  : darkMode
-                  ? "bg-zinc-700"
-                  : "bg-zinc-200"
-              }`}
-              aria-label={`Puzzle ${index + 1}${puzzle.stars ? ` (${puzzle.stars} stars)` : ''}`}
-            >
-              {puzzle.stars > 0 && (
-                <div className="relative">
-                  <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs">
-                    {'⭐'.repeat(puzzle.stars)}
-                  </div>
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
-
-        <div className="text-5xl font-bold text-center">{puzzleSet.puzzles[puzzleSet.currentPuzzleIndex].target}</div>
-
-        <div className="grid grid-cols-3 gap-4">
-          {numberSetHistory[currentMove].map((num, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleNumberClick(idx)}
-              className={`w-20 h-20 rounded-full text-2xl font-bold border transition-colors duration-75
-                ${selectedPosition === idx ? "bg-indigo-500 border-indigo-300" : darkMode ? "bg-zinc-800 border-zinc-700 hover:bg-zinc-700" : "bg-zinc-100 border-zinc-300 hover:bg-zinc-200"}
-                ${num === null ? "invisible" : ""}
-                ${shakePosition === idx ? "animate-[shake_0.2s_ease-in-out]" : ""}`}
-            >
-              {num ?? ""}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex gap-4">
-          {operators.map(({ sign, fn }) => (
-            <button
-              key={sign}
-              onClick={() => handleOperatorClick(fn, sign)}
-              disabled={firstOperandNumber === null}
-              className={`w-14 h-14 rounded-full text-xl border transition
-                ${selectedOperator === sign ? "bg-indigo-600 border-indigo-300" : darkMode ? "bg-zinc-800 border-zinc-700 hover:bg-zinc-700" : "bg-zinc-100 border-zinc-300 hover:bg-zinc-200"}
-                ${firstOperandNumber === null ? "opacity-50 cursor-not-allowed" : ""}`}
-            >
-              {sign}
-            </button>
-          ))}
-          <button
-            onClick={handleUndoClick}
-            className="w-14 h-14 rounded-full text-xl bg-amber-500 hover:bg-amber-600 text-black font-bold"
-          >
-            ↺
-          </button>
-        </div>
+        <GameControls
+          operators={operators}
+          firstOperandNumber={firstOperandNumber}
+          selectedOperator={selectedOperator}
+          handleOperatorClick={handleOperatorClick}
+          handleUndoClick={handleUndoClick}
+          darkMode={darkMode}
+        />
 
         <p className="text-xl">⭐ <span className="font-semibold text-amber-400">{earnedStars}</span> Earned</p>
 
@@ -212,266 +100,57 @@ const Game: React.FC = () => {
               ? "bg-amber-400 hover:bg-amber-500 text-black" 
               : "bg-zinc-300 text-zinc-500 cursor-not-allowed dark:bg-zinc-700 dark:text-zinc-500"}`}
         >
-          <StarIcon className="w-5 h-5" />
           Collect Stars
         </button>
 
-        {/* Solution and Moves section */}
-        <div className="w-full flex flex-col gap-2">
-          {showSolution && (
-            <details className={`${darkMode ? "bg-zinc-800 border-zinc-700" : "bg-zinc-100 border-zinc-300"} w-full border rounded`}
-                     open={showSolution}>
-              <summary className="cursor-pointer font-semibold text-lg px-4 py-2">💡 Solution</summary>
-              <div className="px-4 pb-4">
-                <div className="space-y-2 mt-2">
-                  {currentPuzzle.solution.map((step, index) => (
-                    <p key={index} className="font-mono">{step}</p>
-                  ))}
-                </div>
-              </div>
-            </details>
-          )}
+        <GameHistory 
+          darkMode={darkMode}
+          showSolution={showSolution}
+          solution={currentPuzzle.solution}
+          moveHistory={moveHistory}
+        />
 
-          <details className={`${darkMode ? "bg-zinc-800 border-zinc-700" : "bg-zinc-100 border-zinc-300"} w-full border rounded`}>
-            <summary className="cursor-pointer font-semibold text-lg px-4 py-2">📝 Moves</summary>
-            <div className="px-4 pb-4">
-              <ul className={`mt-2 text-sm max-h-40 overflow-y-auto ${darkMode ? "text-zinc-300" : "text-zinc-700"}`}>
-                {moveHistory.length > 0 ? (
-                  moveHistory.map((move, i) => <li key={i}>{move}</li>)
-                ) : (
-                  <li className="text-zinc-500">No moves yet.</li>
-                )}
-              </ul>
-            </div>
-          </details>
-        </div>
-
-        {/* Statistics Modal */}
+        {/* Modals */}
         {showStatistics && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-               onClick={(e) => handleModalOutsideClick(e, () => setShowStatistics(false))}>
-            <div className={`${darkMode ? "bg-zinc-800" : "bg-white"} p-6 rounded-lg max-w-md w-full text-center`}>
-              <h2 className="text-2xl font-bold mb-6">📊 Statistics</h2>
-              
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className={`${darkMode ? "bg-zinc-700" : "bg-zinc-100"} p-4 rounded-lg`}>
-                  <p className="text-3xl font-bold mb-1">{statistics.daysPlayed}</p>
-                  <p className="text-sm text-zinc-400">Days Played</p>
-                </div>
-                <div className={`${darkMode ? "bg-zinc-700" : "bg-zinc-100"} p-4 rounded-lg`}>
-                  <p className="text-3xl font-bold mb-1">{statistics.currentStreak}</p>
-                  <p className="text-sm text-zinc-400">Current Streak</p>
-                </div>
-                <div className={`${darkMode ? "bg-zinc-700" : "bg-zinc-100"} p-4 rounded-lg`}>
-                  <p className="text-3xl font-bold mb-1">{statistics.bestStreak}</p>
-                  <p className="text-sm text-zinc-400">Best Streak</p>
-                </div>
-                <div className={`${darkMode ? "bg-zinc-700" : "bg-zinc-100"} p-4 rounded-lg`}>
-                  <p className="text-3xl font-bold mb-1">{statistics.perfectDays}</p>
-                  <p className="text-sm text-zinc-400">Perfect Days</p>
-                </div>
-              </div>
-
-              {statistics.daysPlayed > 0 && (
-                <div className={`${darkMode ? "bg-zinc-700" : "bg-zinc-100"} p-4 rounded-lg mb-6`}>
-                  <div className="flex items-baseline justify-center gap-2 mb-2">
-                    <p className="text-2xl font-bold">{(statistics.totalStars / statistics.daysPlayed).toFixed(1)}</p>
-                    <p className="text-sm text-zinc-400">stars per day</p>
-                  </div>
-                  <p className={`${getStarRating(statistics.totalStars / statistics.daysPlayed).color} text-lg font-medium`}>
-                    {getStarRating(statistics.totalStars / statistics.daysPlayed).message}
-                  </p>
-                </div>
-              )}
-
-              <button
-                onClick={confirmResetStatistics}
-                className="text-sm px-3 py-1.5 rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors duration-75"
-              >
-                Reset Statistics
-              </button>
-              
-              <button
-                onClick={() => setShowStatistics(false)}
-                className="w-full mt-6 bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600"
-              >
-                Close
-              </button>
-            </div>
-          </div>
+          <StatisticsModal
+            darkMode={darkMode}
+            statistics={statistics}
+            confirmResetStatistics={confirmResetStatistics}
+            onClose={() => setShowStatistics(false)}
+            handleModalOutsideClick={handleModalOutsideClick}
+            getStarRating={getStarRating}
+          />
         )}
 
-        {/* Collection Modal */}
         {showCollectModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-               onClick={(e) => handleModalOutsideClick(e, () => setShowCollectModal(false))}>
-            <div className={`${darkMode ? "bg-zinc-800" : "bg-white"} p-6 rounded-lg max-w-md w-full text-center`}>
-              {earnedStars === 3 ? (
-                <>
-                  <h2 className="text-2xl font-bold mb-4">🎉 Amazing Job! 🎉</h2>
-                  <p className="mb-4">You earned all 3 ⭐⭐⭐ stars on puzzle {puzzleSet.currentPuzzleIndex + 1} by using all numbers in a perfect chain!</p>
-                </>
-              ) : earnedStars === 2 ? (
-                <>
-                  <h2 className="text-xl font-bold mb-4">🎯 Great Work!</h2>
-                  <p className="mb-4">You earned 2 ⭐⭐ stars on puzzle {puzzleSet.currentPuzzleIndex + 1}! Want to try for 3 stars with a chain solution?</p>
-                </>
-              ) : (
-                <>
-                  <h2 className="text-xl font-bold mb-4">👍 Good Job!</h2>
-                  <p className="mb-4">You earned 1 ⭐ star on puzzle {puzzleSet.currentPuzzleIndex + 1}! Want to try using more numbers for additional stars?</p>
-                </>
-              )}
-              <div className="flex gap-4 justify-center">
-                <button
-                  onClick={() => setShowCollectModal(false)}
-                  className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600"
-                >
-                  Keep Playing
-                </button>
-                <button
-                  onClick={() => {
-                    setShowCollectModal(false);
-                    switchToPuzzle((puzzleSet.currentPuzzleIndex + 1) % puzzleSet.puzzles.length);
-                  }}
-                  className="px-4 py-2 bg-amber-500 text-black rounded hover:bg-amber-600"
-                >
-                  Next Puzzle
-                </button>
-              </div>
-            </div>
-          </div>
+          <CollectStarsModal
+            darkMode={darkMode}
+            earnedStars={earnedStars}
+            puzzleIndex={puzzleSet.currentPuzzleIndex}
+            onKeepPlaying={() => setShowCollectModal(false)}
+            onNextPuzzle={() => {
+              setShowCollectModal(false);
+              switchToPuzzle((puzzleSet.currentPuzzleIndex + 1) % puzzleSet.puzzles.length);
+            }}
+            handleModalOutsideClick={handleModalOutsideClick}
+            onClose={() => setShowCollectModal(false)}
+          />
         )}
 
-        {/* New Game Warning Modal */}
-        {showNewGameWarning && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-               onClick={(e) => handleModalOutsideClick(e, () => setShowNewGameWarning(false))}>
-            <div className={`${darkMode ? "bg-zinc-800" : "bg-white"} p-6 rounded-lg max-w-md w-full text-center`}>
-              <h2 className="text-xl font-bold mb-4">⚠️ Wait!</h2>
-              <p className="mb-4">Starting a new game will lose your chance to collect {earnedStars} stars. Are you sure?</p>
-              <div className="flex gap-4 justify-center">
-                <button
-                  onClick={() => setShowNewGameWarning(false)}
-                  className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600"
-                >
-                  Keep Playing
-                </button>
-                <button
-                  onClick={() => {
-                    setShowNewGameWarning(false);
-                    startNewTestSet();
-                  }}
-                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                >
-                  New Game
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Reset Warning Modal */}
-        {showResetWarning && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-               onClick={(e) => handleModalOutsideClick(e, () => setShowResetWarning(false))}>
-            <div className={`${darkMode ? "bg-zinc-800" : "bg-white"} p-6 rounded-lg max-w-md w-full text-center`}>
-              <h2 className="text-xl font-bold mb-4">⚠️ Warning!</h2>
-              <p className="mb-4">Resetting statistics will clear all your progress. This cannot be undone!</p>
-              <div className="flex gap-4 justify-center">
-                <button
-                  onClick={() => setShowResetWarning(false)}
-                  className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={actuallyResetStatistics}
-                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                >
-                  Reset Everything
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Solution Warning Modal */}
-        {showSolutionWarning && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-               onClick={(e) => handleModalOutsideClick(e, () => setShowSolutionWarning(false))}>
-            <div className={`${darkMode ? "bg-zinc-800" : "bg-white"} p-6 rounded-lg max-w-md w-full text-center`}>
-              <h2 className="text-xl font-bold mb-4">⚠️ Warning!</h2>
-              <p className="mb-4">Viewing the solution will prevent you from earning stars for this puzzle. Are you sure?</p>
-              <div className="flex gap-4 justify-center">
-                <button
-                  onClick={() => setShowSolutionWarning(false)}
-                  className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600"
-                >
-                  Keep Playing
-                </button>
-                <button
-                  onClick={confirmShowSolution}
-                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                >
-                  Show Solution
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* How to Play Modal */}
         {showHowToPlay && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-               onClick={(e) => handleModalOutsideClick(e, () => setShowHowToPlay(false))}>
-            <div className={`${darkMode ? "bg-zinc-800" : "bg-white"} p-6 rounded-lg max-w-md w-full space-y-4`}>
-              <h2 className="text-2xl font-bold">How to Play</h2>
-              <div className="space-y-4">
-                <p>Use the numbers and operators to reach the target number. You can earn stars based on how efficiently you solve the puzzle:</p>
-                
-                <div className="space-y-2">
-                  <p className="flex items-center gap-2">
-                    <span className="text-xl">⭐⭐⭐</span>
-                    <span>Use all numbers in a chain (each result feeds into the next operation)</span>
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <span className="text-xl">⭐⭐</span>
-                    <span>Use all numbers (in any order)</span>
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <span className="text-xl">⭐</span>
-                    <span>Reach the target (using any number of moves)</span>
-                  </p>
-                </div>
-
-                <p className="text-sm text-zinc-400">💡 Tip: You can collect stars at any time and keep trying for more, but giving up or starting a new game will prevent earning more stars for the current puzzle.</p>
-              </div>
-              <button
-                onClick={() => setShowHowToPlay(false)}
-                className="w-full bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600"
-              >
-                Got it!
-              </button>
-            </div>
-          </div>
+          <HowToPlayModal
+            darkMode={darkMode}
+            onClose={() => setShowHowToPlay(false)}
+            handleModalOutsideClick={handleModalOutsideClick}
+          />
         )}
 
-        {/* About Modal */}
         {showAbout && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
-               onClick={(e) => handleModalOutsideClick(e, () => setShowAbout(false))}>
-            <div className={`${darkMode ? "bg-zinc-800" : "bg-white"} p-6 rounded-lg max-w-md w-full`}>
-              <h2 className="text-xl font-bold mb-4">About Digits</h2>
-              <p className="mb-4">A mathematical puzzle game where you combine numbers to reach a target. Challenge yourself with new puzzles every day!</p>
-              <button
-                onClick={() => setShowAbout(false)}
-                className="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600"
-              >
-                Close
-              </button>
-            </div>
-          </div>
+          <AboutModal
+            darkMode={darkMode}
+            onClose={() => setShowAbout(false)}
+            handleModalOutsideClick={handleModalOutsideClick}
+          />
         )}
       </div>
     </div>
