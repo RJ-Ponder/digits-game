@@ -20,6 +20,7 @@ export interface DailyPuzzle {
   target: number;
   solution: string[];
   stars: number;
+  solutionShown: boolean;
 }
 
 export interface DailyPuzzleSet {

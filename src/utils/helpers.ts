@@ -44,7 +44,8 @@ export function generateDailyPuzzles(forceSeed?: string): DailyPuzzle[] {
       numberSet,
       target,
       solution,
-      stars: 0
+      stars: 0,
+      solutionShown: false
     });
   }
 

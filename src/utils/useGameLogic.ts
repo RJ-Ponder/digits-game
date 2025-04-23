@@ -1,21 +1,14 @@
 import { useEffect, useState } from 'react';
 import {
-  generateNumberSet,
-  generateTargetAndSolution,
-  generateGameInfo,
+  generateDailyPuzzles,
+  getDailyPuzzleSeed,
   saveDataToLocalStorage,
   loadDataFromLocalStorage,
-  generateDailyPuzzles,
-  getDailyPuzzleSeed
 } from './helpers';
 import { DailyPuzzle, DailyPuzzleSet } from '../types';
 
-const STARTING_NUMBER_SET = 'sns';
-const TARGET_AND_SOLUTION = 'tas';
-const GAME_INFO = 'gi';
-const TOTAL_STARS = 'ts';
-const STATISTICS = 'stats';
 const DAILY_PUZZLE_SET = 'dps';
+const STATISTICS = 'stats';
 
 type OperationGroup = {
   sign: string | null;
@@ -23,32 +16,7 @@ type OperationGroup = {
   result: number | null;
 };
 
-type GameInfo = {
-  id: string;
-  stars: number;
-};
-
-type TargetAndSolution = {
-  target: number;
-  solution: string[];
-};
-
 function useGameLogic() {
-  const useLocalStorageState = <T,>(key: string, defaultValue: T, calculate = (v: any): T => v): [T, React.Dispatch<React.SetStateAction<T>>] => {
-    const [state, setState] = useState<T>(() => {
-      const loaded = loadDataFromLocalStorage(key);
-      const valueToSave = loaded !== null ? calculate(loaded) : defaultValue;
-      saveDataToLocalStorage(key, valueToSave);
-      return valueToSave;
-    });
-
-    useEffect(() => {
-      saveDataToLocalStorage(key, state);
-    }, [key, state]);
-
-    return [state, setState];
-  };
-
   const [puzzleSet, setPuzzleSet] = useState<DailyPuzzleSet>(() => {
     const loaded = loadDataFromLocalStorage<DailyPuzzleSet>(DAILY_PUZZLE_SET);
     const currentSeed = getDailyPuzzleSeed();
@@ -68,11 +36,6 @@ function useGameLogic() {
   });
 
   const currentPuzzle = puzzleSet.puzzles[puzzleSet.currentPuzzleIndex];
-
-  const [startingNumberSet, setStartingNumberSet] = useLocalStorageState<(number | null)[]>(STARTING_NUMBER_SET, generateNumberSet());
-  const [targetAndSolution, setTargetAndSolution] = useLocalStorageState<TargetAndSolution>(TARGET_AND_SOLUTION, generateTargetAndSolution(startingNumberSet));
-  const [gameInfo, setGameInfo] = useLocalStorageState<GameInfo>(GAME_INFO, generateGameInfo());
-  const [totalStars, setTotalStars] = useLocalStorageState<number>(TOTAL_STARS, 0);
 
   const [numberSetHistory, setNumberSetHistory] = useState<(number | null)[][]>([currentPuzzle.numberSet]);
   const [currentMove, setCurrentMove] = useState<number>(0);
@@ -113,20 +76,27 @@ function useGameLogic() {
 
   function handleNumberClick(position: number) {
     const clickedNumber = numberSetHistory[currentMove][position];
-    const isUnselecting = firstOperandPosition === position || clickedNumber === null;
-    const isFirstOperand = firstOperandNumber === null || (firstOperandNumber !== null && operationGroup.function === null);
-    const isSecondOperand = firstOperandNumber !== null && operationGroup.function !== null;
+    
+    // Early return if clicking on empty position
+    if (clickedNumber === null) return;
 
-    if (isUnselecting) {
+    // If clicking the same number, unselect it and reset
+    if (firstOperandPosition === position) {
       resetBoard();
-    } else if (isFirstOperand) {
+      return;
+    }
+
+    // If no number is selected, this becomes the first operand
+    if (firstOperandNumber === null) {
       setFirstOperandNumber(clickedNumber);
       setFirstOperandPosition(position);
       setSelectedPosition(position);
-    } else if (isSecondOperand) {
+      return;
+    }
+
+    // Only allow selecting a second number if an operator is selected
+    if (operationGroup.function !== null) {
       performOperation(clickedNumber, position);
-    } else {
-      resetBoard();
     }
   }
 
@@ -186,7 +156,7 @@ function useGameLogic() {
 
   function calculateStars(): number {
     const num = numberSetHistory[currentMove]?.[selectedPosition ?? 0];
-    if (num !== targetAndSolution.target) return 0;
+    if (num !== currentPuzzle.target) return 0;
     
     const usedNumbers = moveHistory.length + 1;
     const isChain = isChainOperation();
@@ -237,13 +207,28 @@ function useGameLogic() {
     setShowSolutionWarning(false);
     setCanEarnMoreStars(false);
     setShowSolution(true);
+    
+    // Mark the current puzzle as having its solution shown
+    const updatedPuzzles = [...puzzleSet.puzzles];
+    updatedPuzzles[puzzleSet.currentPuzzleIndex] = {
+      ...currentPuzzle,
+      solutionShown: true
+    };
+    
+    const newPuzzleSet = {
+      ...puzzleSet,
+      puzzles: updatedPuzzles
+    };
+    
+    setPuzzleSet(newPuzzleSet);
+    saveDataToLocalStorage(DAILY_PUZZLE_SET, newPuzzleSet);
   }
 
   function confirmNewGame() {
-    if (earnedStars > gameInfo.stars && canEarnMoreStars) {
+    if (earnedStars > 0 && canEarnMoreStars) {
       setShowNewGameWarning(true);
     } else {
-      startNewGame();
+      startNewTestSet();
     }
   }
 
@@ -258,42 +243,11 @@ function useGameLogic() {
 
   function resetStatistics() {
     localStorage.removeItem(STATISTICS);
-    localStorage.removeItem(TOTAL_STARS);
     setGamesPlayed(0);
     setZeroStarGames(0);
     setOneStarGames(0);
     setTwoStarGames(0);
     setThreeStarGames(0);
-    setTotalStars(0);
-  }
-
-  function startNewGame() {
-    const newSet = generateNumberSet();
-    const newTarget = generateTargetAndSolution(newSet);
-    const newInfo = generateGameInfo();
-
-    localStorage.removeItem(STARTING_NUMBER_SET);
-    localStorage.removeItem(TARGET_AND_SOLUTION);
-    localStorage.removeItem(GAME_INFO);
-
-    setStartingNumberSet(newSet);
-    setTargetAndSolution(newTarget);
-    setGameInfo(newInfo);
-    
-    setNumberSetHistory([newSet]);
-    setCurrentMove(0);
-    setMoveHistory([]);
-    setPositionHistory([]);
-    setCanEarnMoreStars(true);
-    setShowSolution(false);
-    setEarnedStars(0);
-    
-    setShowCollectModal(false);
-    setShowNewGameWarning(false);
-    setShowSolutionWarning(false);
-    setShowSolution(false);
-    
-    resetBoard();
   }
 
   function startNewTestSet() {
@@ -331,12 +285,13 @@ function useGameLogic() {
       currentPuzzleIndex: index
     }));
     
-    setNumberSetHistory([puzzleSet.puzzles[index].numberSet]);
+    const targetPuzzle = puzzleSet.puzzles[index];
+    setNumberSetHistory([targetPuzzle.numberSet]);
     setCurrentMove(0);
     setMoveHistory([]);
     setPositionHistory([]);
-    setCanEarnMoreStars(true);
-    setShowSolution(false);
+    setCanEarnMoreStars(!targetPuzzle.solutionShown);
+    setShowSolution(targetPuzzle.solutionShown);
     setEarnedStars(0);
     resetBoard();
     
@@ -349,13 +304,13 @@ function useGameLogic() {
   useEffect(() => {
     const num = numberSetHistory[currentMove]?.[selectedPosition ?? 0];
     let stars = 0;
-    if (num === targetAndSolution.target) {
+    if (num === currentPuzzle.target) {
       stars = 1;
       if (moveHistory.length === 5) stars = 2;
       if (isChainOperation()) stars = 3;
     }
     setEarnedStars(stars);
-  }, [numberSetHistory, moveHistory, selectedPosition]);
+  }, [numberSetHistory, moveHistory, selectedPosition, currentPuzzle.target]);
 
   useEffect(() => {
     const stats = loadDataFromLocalStorage(STATISTICS) || {};
@@ -369,7 +324,7 @@ function useGameLogic() {
     setOneStarGames(one);
     setTwoStarGames(two);
     setThreeStarGames(three);
-  }, [gameInfo]);
+  }, []);
 
   function isChainOperation(): boolean {
     if (moveHistory.length !== 5) return false;
@@ -382,25 +337,16 @@ function useGameLogic() {
   }
 
   return {
-    startingNumberSet,
-    targetAndSolution,
-    gameInfo,
-    totalStars,
     numberSetHistory,
     currentMove,
     earnedStars,
     selectedPosition,
     selectedOperator,
     moveHistory,
-    setStartingNumberSet,
-    setGameInfo,
-    setTargetAndSolution,
-    setTotalStars,
     handleNumberClick,
     handleOperatorClick,
     handleUndoClick,
     handleCollectClick,
-    startNewGame,
     gamesPlayed,
     zeroStarGames,
     oneStarGames,
@@ -431,6 +377,7 @@ function useGameLogic() {
     currentPuzzle,
     switchToPuzzle,
     startNewTestSet,
+    firstOperandNumber,
   };
 }
 

@@ -4,25 +4,16 @@ import { SunIcon, MoonIcon, QuestionMarkCircleIcon, InformationCircleIcon, Arrow
 
 const Game: React.FC = () => {
   const {
-    startingNumberSet,
-    targetAndSolution,
-    gameInfo,
-    totalStars,
     numberSetHistory,
     currentMove,
     earnedStars,
     selectedPosition,
     selectedOperator,
     moveHistory,
-    setStartingNumberSet,
-    setGameInfo,
-    setTargetAndSolution,
-    setTotalStars,
     handleNumberClick,
     handleOperatorClick,
     handleUndoClick,
     handleCollectClick,
-    startNewGame,
     gamesPlayed,
     zeroStarGames,
     oneStarGames,
@@ -49,11 +40,12 @@ const Game: React.FC = () => {
     showStatistics,
     setShowStatistics,
     puzzleSet,
+    currentPuzzle,
     switchToPuzzle,
     startNewTestSet,
+    firstOperandNumber,
   } = useGameLogic();
 
-  const { target } = targetAndSolution;
   const operators = [
     { sign: "+", fn: (a: number, b: number) => a + b },
     { sign: "-", fn: (a: number, b: number) => a - b },
@@ -174,8 +166,10 @@ const Game: React.FC = () => {
             <button
               key={sign}
               onClick={() => handleOperatorClick(fn, sign)}
+              disabled={firstOperandNumber === null}
               className={`w-14 h-14 rounded-full text-xl border transition
-                ${selectedOperator === sign ? "bg-indigo-600 border-indigo-300" : darkMode ? "bg-zinc-800 border-zinc-700 hover:bg-zinc-700" : "bg-zinc-100 border-zinc-300 hover:bg-zinc-200"}`}
+                ${selectedOperator === sign ? "bg-indigo-600 border-indigo-300" : darkMode ? "bg-zinc-800 border-zinc-700 hover:bg-zinc-700" : "bg-zinc-100 border-zinc-300 hover:bg-zinc-200"}
+                ${firstOperandNumber === null ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {sign}
             </button>
@@ -217,7 +211,7 @@ const Game: React.FC = () => {
               <summary className="cursor-pointer font-semibold text-lg px-4 py-2">💡 Solution</summary>
               <div className="px-4 pb-4">
                 <div className="space-y-2 mt-2">
-                  {targetAndSolution.solution.map((step, index) => (
+                  {currentPuzzle.solution.map((step, index) => (
                     <p key={index} className="font-mono">{step}</p>
                   ))}
                 </div>
@@ -341,7 +335,7 @@ const Game: React.FC = () => {
                 <button
                   onClick={() => {
                     setShowNewGameWarning(false);
-                    startNewGame();
+                    startNewTestSet();
                   }}
                   className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
                 >
@@ -358,7 +352,7 @@ const Game: React.FC = () => {
                onClick={(e) => handleModalOutsideClick(e, () => setShowResetWarning(false))}>
             <div className={`${darkMode ? "bg-zinc-800" : "bg-white"} p-6 rounded-lg max-w-md w-full text-center`}>
               <h2 className="text-xl font-bold mb-4">⚠️ Warning!</h2>
-              <p className="mb-4">Resetting statistics will clear all your progress including your total stars ({totalStars}). This cannot be undone!</p>
+              <p className="mb-4">Resetting statistics will clear all your progress. This cannot be undone!</p>
               <div className="flex gap-4 justify-center">
                 <button
                   onClick={() => setShowResetWarning(false)}
