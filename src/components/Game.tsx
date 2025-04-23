@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import useGameLogic from "../utils/useGameLogic";
-import { SunIcon, MoonIcon, QuestionMarkCircleIcon, InformationCircleIcon, ArrowPathIcon, StarIcon, FlagIcon } from "@heroicons/react/24/solid";
+import { SunIcon, MoonIcon, QuestionMarkCircleIcon, InformationCircleIcon, ArrowPathIcon, StarIcon, FlagIcon, ChartBarIcon } from "@heroicons/react/24/solid";
 
 const Game: React.FC = () => {
   const {
@@ -45,6 +45,9 @@ const Game: React.FC = () => {
     showSolutionWarning,
     setShowSolutionWarning,
     confirmShowSolution,
+    shakePosition,
+    showStatistics,
+    setShowStatistics,
   } = useGameLogic();
 
   const { target } = targetAndSolution;
@@ -76,6 +79,13 @@ const Game: React.FC = () => {
               aria-label="Toggle dark mode"
             >
               {darkMode ? <SunIcon className="w-6 h-6" /> : <MoonIcon className="w-6 h-6" />}
+            </button>
+            <button
+              onClick={() => setShowStatistics(true)}
+              className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-75"
+              aria-label="Show statistics"
+            >
+              <ChartBarIcon className="w-6 h-6" />
             </button>
             <button
               onClick={() => setShowHowToPlay(true)}
@@ -111,7 +121,20 @@ const Game: React.FC = () => {
           </div>
         </div>
 
-        <div className="text-5xl font-bold">{target}</div>
+        <div className="w-full flex flex-col items-center gap-2">
+          <div className="text-5xl font-bold">{target}</div>
+          {showSolution && (
+            <details className={`${darkMode ? "bg-zinc-800 border-zinc-700" : "bg-zinc-100 border-zinc-300"} w-full border rounded p-4 mt-2`}
+                     open={showSolution}>
+              <summary className="cursor-pointer font-semibold text-lg">💡 Solution</summary>
+              <div className="space-y-2 mt-2">
+                {targetAndSolution.solution.map((step, index) => (
+                  <p key={index} className="font-mono">{step}</p>
+                ))}
+              </div>
+            </details>
+          )}
+        </div>
 
         <div className="grid grid-cols-3 gap-4">
           {numberSetHistory[currentMove].map((num, idx) => (
@@ -120,7 +143,8 @@ const Game: React.FC = () => {
               onClick={() => handleNumberClick(idx)}
               className={`w-20 h-20 rounded-full text-2xl font-bold border transition-colors duration-75
                 ${selectedPosition === idx ? "bg-indigo-500 border-indigo-300" : darkMode ? "bg-zinc-800 border-zinc-700 hover:bg-zinc-700" : "bg-zinc-100 border-zinc-300 hover:bg-zinc-200"}
-                ${num === null ? "invisible" : ""}`}
+                ${num === null ? "invisible" : ""}
+                ${shakePosition === idx ? "animate-[shake_0.2s_ease-in-out]" : ""}`}
             >
               {num ?? ""}
             </button>
@@ -153,9 +177,9 @@ const Game: React.FC = () => {
 
         <button
           onClick={handleCollectClick}
-          disabled={earnedStars === 0}
+          disabled={earnedStars === 0 || showSolution}
           className={`flex items-center gap-2 px-6 py-2 rounded-full font-medium transition-colors duration-75
-            ${earnedStars > 0 
+            ${earnedStars > 0 && !showSolution
               ? "bg-amber-400 hover:bg-amber-500 text-black" 
               : "bg-zinc-300 text-zinc-500 cursor-not-allowed dark:bg-zinc-700 dark:text-zinc-500"}`}
         >
@@ -164,25 +188,8 @@ const Game: React.FC = () => {
         </button>
 
         <details className={`${darkMode ? "bg-zinc-800 border-zinc-700" : "bg-zinc-100 border-zinc-300"} w-full border rounded p-4`}>
-          <summary className="cursor-pointer font-semibold text-lg">📊 Statistics</summary>
-          <div className={`mt-2 space-y-1 text-sm ${darkMode ? "text-zinc-300" : "text-zinc-700"}`}>
-            <p>Total Games: {gamesPlayed}</p>
-            <p>0⭐: {zeroStarGames}</p>
-            <p>1⭐: {oneStarGames}</p>
-            <p>2⭐: {twoStarGames}</p>
-            <p>3⭐: {threeStarGames}</p>
-            <button
-              onClick={confirmResetStatistics}
-              className="mt-2 text-red-400 underline hover:text-red-600"
-            >
-              Reset Statistics
-            </button>
-          </div>
-        </details>
-
-        <details className={`${darkMode ? "bg-zinc-800 border-zinc-700" : "bg-zinc-100 border-zinc-300"} w-full border rounded p-4`}>
           <summary className="cursor-pointer font-semibold text-lg">📝 Moves</summary>
-          <ul className={`mt-2 text-sm list-disc pl-5 max-h-40 overflow-y-auto ${darkMode ? "text-zinc-300" : "text-zinc-700"}`}>
+          <ul className={`mt-2 text-sm pl-5 max-h-40 overflow-y-auto ${darkMode ? "text-zinc-300" : "text-zinc-700"}`}>
             {moveHistory.length > 0 ? (
               moveHistory.map((move, i) => <li key={i}>{move}</li>)
             ) : (
@@ -190,6 +197,49 @@ const Game: React.FC = () => {
             )}
           </ul>
         </details>
+
+        {/* Statistics Modal */}
+        {showStatistics && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+               onClick={(e) => handleModalOutsideClick(e, () => setShowStatistics(false))}>
+            <div className={`${darkMode ? "bg-zinc-800" : "bg-white"} p-6 rounded-lg max-w-md w-full text-center`}>
+              <h2 className="text-xl font-bold mb-4">📊 Statistics</h2>
+              <div className={`mt-2 space-y-3 text-sm ${darkMode ? "text-zinc-300" : "text-zinc-700"}`}>
+                <p className="text-lg">Total Games: {gamesPlayed}</p>
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <p className="text-3xl mb-1">{zeroStarGames}</p>
+                    <p>0⭐</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-3xl mb-1">{oneStarGames}</p>
+                    <p>1⭐</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-3xl mb-1">{twoStarGames}</p>
+                    <p>2⭐</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-3xl mb-1">{threeStarGames}</p>
+                    <p>3⭐</p>
+                  </div>
+                </div>
+                <button
+                  onClick={confirmResetStatistics}
+                  className="mt-4 text-red-400 underline hover:text-red-600"
+                >
+                  Reset Statistics
+                </button>
+              </div>
+              <button
+                onClick={() => setShowStatistics(false)}
+                className="w-full mt-6 bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Collection Modal */}
         {showCollectModal && (
@@ -307,27 +357,6 @@ const Game: React.FC = () => {
                   Show Solution
                 </button>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Solution Modal */}
-        {showSolution && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-               onClick={(e) => handleModalOutsideClick(e, () => setShowSolution(false))}>
-            <div className={`${darkMode ? "bg-zinc-800" : "bg-white"} p-6 rounded-lg max-w-md w-full`}>
-              <h2 className="text-xl font-bold mb-4">Solution</h2>
-              <div className="space-y-2 mb-4">
-                {targetAndSolution.solution.map((step, index) => (
-                  <p key={index} className="font-mono">{step}</p>
-                ))}
-              </div>
-              <button
-                onClick={() => setShowSolution(false)}
-                className="w-full px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600"
-              >
-                Close
-              </button>
             </div>
           </div>
         )}

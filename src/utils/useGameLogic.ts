@@ -74,6 +74,9 @@ function useGameLogic() {
   const [showResetWarning, setShowResetWarning] = useState<boolean>(false);
   const [showSolutionWarning, setShowSolutionWarning] = useState<boolean>(false);
 
+  const [shakePosition, setShakePosition] = useState<number | null>(null);
+  const [showStatistics, setShowStatistics] = useState<boolean>(false);
+
   function resetBoard(isUndo = false) {
     setOperationGroup({ sign: null, function: null, result: null });
     setSelectedOperator(null);
@@ -132,6 +135,9 @@ function useGameLogic() {
       setSelectedOperator(null);
       setOperationGroup({ sign: null, function: null, result: null });
     } else {
+      // Show shake animation on invalid operation
+      setShakePosition(position);
+      setTimeout(() => setShakePosition(null), 200); // Remove shake after animation
       resetBoard();
     }
   }
@@ -171,7 +177,7 @@ function useGameLogic() {
     if (!canEarnMoreStars) return;
     
     const stars = calculateStars();
-    if (stars > 0) {
+    if (stars > 0 && !showSolution) {  // Add check for showSolution
       // Show the collection modal
       setShowCollectModal(true);
       
@@ -343,6 +349,10 @@ function useGameLogic() {
     setShowCollectModal,
     setShowNewGameWarning,
     setShowResetWarning,
+    shakePosition,
+    setShakePosition,
+    showStatistics,
+    setShowStatistics,
   };
 }
 
