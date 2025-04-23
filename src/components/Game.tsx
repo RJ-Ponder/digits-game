@@ -44,6 +44,8 @@ const Game: React.FC = () => {
     switchToPuzzle,
     startNewTestSet,
     firstOperandNumber,
+    statistics,
+    getStarRating,
   } = useGameLogic();
 
   const operators = [
@@ -238,34 +240,46 @@ const Game: React.FC = () => {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
                onClick={(e) => handleModalOutsideClick(e, () => setShowStatistics(false))}>
             <div className={`${darkMode ? "bg-zinc-800" : "bg-white"} p-6 rounded-lg max-w-md w-full text-center`}>
-              <h2 className="text-xl font-bold mb-4">📊 Statistics</h2>
-              <div className={`mt-2 space-y-3 text-sm ${darkMode ? "text-zinc-300" : "text-zinc-700"}`}>
-                <p className="text-lg">Total Games: {gamesPlayed}</p>
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <p className="text-3xl mb-1">{zeroStarGames}</p>
-                    <p>0⭐</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-3xl mb-1">{oneStarGames}</p>
-                    <p>1⭐</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-3xl mb-1">{twoStarGames}</p>
-                    <p>2⭐</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-3xl mb-1">{threeStarGames}</p>
-                    <p>3⭐</p>
-                  </div>
+              <h2 className="text-2xl font-bold mb-6">📊 Statistics</h2>
+              
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className={`${darkMode ? "bg-zinc-700" : "bg-zinc-100"} p-4 rounded-lg`}>
+                  <p className="text-3xl font-bold mb-1">{statistics.daysPlayed}</p>
+                  <p className="text-sm text-zinc-400">Days Played</p>
                 </div>
-                <button
-                  onClick={confirmResetStatistics}
-                  className="mt-4 text-red-400 underline hover:text-red-600"
-                >
-                  Reset Statistics
-                </button>
+                <div className={`${darkMode ? "bg-zinc-700" : "bg-zinc-100"} p-4 rounded-lg`}>
+                  <p className="text-3xl font-bold mb-1">{statistics.currentStreak}</p>
+                  <p className="text-sm text-zinc-400">Current Streak</p>
+                </div>
+                <div className={`${darkMode ? "bg-zinc-700" : "bg-zinc-100"} p-4 rounded-lg`}>
+                  <p className="text-3xl font-bold mb-1">{statistics.bestStreak}</p>
+                  <p className="text-sm text-zinc-400">Best Streak</p>
+                </div>
+                <div className={`${darkMode ? "bg-zinc-700" : "bg-zinc-100"} p-4 rounded-lg`}>
+                  <p className="text-3xl font-bold mb-1">{statistics.perfectDays}</p>
+                  <p className="text-sm text-zinc-400">Perfect Days</p>
+                </div>
               </div>
+
+              {statistics.daysPlayed > 0 && (
+                <div className={`${darkMode ? "bg-zinc-700" : "bg-zinc-100"} p-4 rounded-lg mb-6`}>
+                  <div className="flex items-baseline justify-center gap-2 mb-2">
+                    <p className="text-2xl font-bold">{(statistics.totalStars / statistics.daysPlayed).toFixed(1)}</p>
+                    <p className="text-sm text-zinc-400">stars per day</p>
+                  </div>
+                  <p className={`${getStarRating(statistics.totalStars / statistics.daysPlayed).color} text-lg font-medium`}>
+                    {getStarRating(statistics.totalStars / statistics.daysPlayed).message}
+                  </p>
+                </div>
+              )}
+
+              <button
+                onClick={confirmResetStatistics}
+                className="text-red-400 underline hover:text-red-600 text-sm"
+              >
+                Reset Statistics
+              </button>
+              
               <button
                 onClick={() => setShowStatistics(false)}
                 className="w-full mt-6 bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600"

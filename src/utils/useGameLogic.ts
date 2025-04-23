@@ -5,10 +5,37 @@ import {
   saveDataToLocalStorage,
   loadDataFromLocalStorage,
 } from './helpers';
-import { DailyPuzzle, DailyPuzzleSet } from '../types';
+import { DailyPuzzle, DailyPuzzleSet, GameStatistics, DayStats } from '../types';
 
 const DAILY_PUZZLE_SET = 'dps';
 const STATISTICS = 'stats';
+
+// Helper function to get today's date in YYYY-MM-DD format
+function getTodayString() {
+  const date = new Date();
+  const easternDate = new Date(date.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  return easternDate.toISOString().split('T')[0];
+}
+
+// Helper function to calculate streak
+function calculateStreak(stats: GameStatistics): number {
+  const today = getTodayString();
+  const dates = Object.keys(stats.dailyStats).sort();
+  if (dates.length === 0) return 0;
+  
+  const lastDate = dates[dates.length - 1];
+  if (lastDate !== today && lastDate !== getTodayString()) return 0;
+  
+  let streak = 1;
+  for (let i = dates.length - 2; i >= 0; i--) {
+    const curr = new Date(dates[i + 1]);
+    const prev = new Date(dates[i]);
+    const diffDays = Math.floor((curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays !== 1) break;
+    streak++;
+  }
+  return streak;
+}
 
 type OperationGroup = {
   sign: string | null;
@@ -63,6 +90,19 @@ function useGameLogic() {
 
   const [shakePosition, setShakePosition] = useState<number | null>(null);
   const [showStatistics, setShowStatistics] = useState<boolean>(false);
+
+  const [statistics, setStatistics] = useState<GameStatistics>(() => {
+    const loaded = loadDataFromLocalStorage<GameStatistics>(STATISTICS) || {
+      daysPlayed: 0,
+      currentStreak: 0,
+      bestStreak: 0,
+      perfectDays: 0,
+      totalStars: 0,
+      lastPlayedDate: '',
+      dailyStats: {}
+    };
+    return loaded;
+  });
 
   function resetBoard(isUndo = false) {
     setOperationGroup({ sign: null, function: null, result: null });
@@ -191,9 +231,47 @@ function useGameLogic() {
       setPuzzleSet(newPuzzleSet);
       saveDataToLocalStorage(DAILY_PUZZLE_SET, newPuzzleSet);
       
-      const stats = loadDataFromLocalStorage(STATISTICS) || {};
-      stats[currentPuzzle.id] = stars;
-      saveDataToLocalStorage(STATISTICS, stats);
+      // Update daily statistics
+      const today = getTodayString();
+      const currentStats = { ...statistics }; // Create a copy to work with
+      if (!currentStats.dailyStats) {
+        currentStats.dailyStats = {}; // Initialize if undefined
+      }
+      
+      const todayStats = currentStats.dailyStats[today] || {
+        date: today,
+        puzzleStars: new Array(5).fill(0),
+        totalStars: 0,
+        isPerfect: false
+      };
+      
+      todayStats.puzzleStars[puzzleSet.currentPuzzleIndex] = stars;
+      todayStats.totalStars = todayStats.puzzleStars.reduce((a, b) => a + b, 0);
+      todayStats.isPerfect = todayStats.puzzleStars.every(s => s === 3);
+      
+      const allDailyStats = { ...currentStats.dailyStats, [today]: todayStats };
+      
+      // Calculate total stars across all days properly
+      const totalStars = Object.values(allDailyStats)
+        .reduce((total, day) => total + (day?.totalStars || 0), 0);
+      
+      const newStats: GameStatistics = {
+        ...currentStats,
+        dailyStats: allDailyStats,
+        daysPlayed: Object.keys(allDailyStats).length,
+        totalStars,
+        perfectDays: Object.values(allDailyStats)
+          .filter(day => day?.isPerfect).length,
+        lastPlayedDate: today
+      };
+      
+      // Update streaks
+      const currentStreak = calculateStreak(newStats);
+      newStats.currentStreak = currentStreak;
+      newStats.bestStreak = Math.max(currentStats.bestStreak || 0, currentStreak);
+      
+      setStatistics(newStats);
+      saveDataToLocalStorage(STATISTICS, newStats);
     }
   }
 
@@ -336,6 +414,14 @@ function useGameLogic() {
     return true;
   }
 
+  function getStarRating(average: number): { message: string; color: string } {
+    if (average >= 14) return { message: "🌟 Phenomenal!", color: "text-amber-400" };
+    if (average >= 12) return { message: "✨ Outstanding!", color: "text-amber-400" };
+    if (average >= 10) return { message: "💫 Excellent!", color: "text-amber-300" };
+    if (average >= 8) return { message: "⭐ Great job!", color: "text-amber-300" };
+    return { message: "🌠 Well done!", color: "text-amber-200" };
+  }
+
   return {
     numberSetHistory,
     currentMove,
@@ -378,6 +464,8 @@ function useGameLogic() {
     switchToPuzzle,
     startNewTestSet,
     firstOperandNumber,
+    statistics,
+    getStarRating,
   };
 }
 

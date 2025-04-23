@@ -6,7 +6,7 @@ const NUMBER_SET_SIZE = 6;
 const NUMBER_SET_MIN = 1;
 const NUMBER_SET_MAX = 20;
 const TARGET_MIN = -25;
-const TARGET_MAX = 75;
+const TARGET_MAX = 50;
 const PUZZLES_PER_DAY = 5;
 
 export function getDailyPuzzleSeed() {

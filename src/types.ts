@@ -28,3 +28,20 @@ export interface DailyPuzzleSet {
   puzzles: DailyPuzzle[];
   currentPuzzleIndex: number;
 }
+
+export interface GameStatistics {
+  daysPlayed: number;
+  currentStreak: number;
+  bestStreak: number;
+  perfectDays: number;
+  totalStars: number;
+  lastPlayedDate: string;
+  dailyStats: Record<string, DayStats>;
+}
+
+export interface DayStats {
+  date: string;
+  puzzleStars: number[];
+  totalStars: number;
+  isPerfect: boolean;
+}
