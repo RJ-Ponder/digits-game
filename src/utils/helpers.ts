@@ -10,6 +10,7 @@ const TARGET_MIN = -25;
 const TARGET_MAX = 50;
 const PUZZLES_PER_DAY = 5;
 const ENCRYPTION_KEY = 'digits-game-v1'; // Base encryption key
+const STATISTICS_KEY = 'digits-game-stats-v1'; // Fixed key for statistics
 const DAILY_SEEDS = [
   'morning-puzzle',
   'noon-puzzle',
@@ -24,6 +25,16 @@ function getDailyEncryptionKey() {
   const easternDate = new Date(date.toLocaleString('en-US', { timeZone: 'America/New_York' }));
   const dateString = `${easternDate.getFullYear()}-${easternDate.getMonth()}-${easternDate.getDate()}`;
   return ENCRYPTION_KEY + '-' + dateString;
+}
+
+// Get the appropriate encryption key based on the storage key
+function getEncryptionKeyForStorage(key: string) {
+  // Use fixed key for statistics to ensure persistence across days
+  if (key === 'stats') {
+    return STATISTICS_KEY;
+  }
+  // For other data (like daily puzzles), use the daily key
+  return getDailyEncryptionKey();
 }
 
 export function getDailyPuzzleSeed() {
@@ -188,7 +199,7 @@ export function saveDataToLocalStorage(key: string, data: any, append = false): 
     // Encrypt the data before saving
     const encryptedData = CryptoJS.AES.encrypt(
       JSON.stringify(dataToSave),
-      getDailyEncryptionKey()
+      getEncryptionKeyForStorage(key)
     ).toString();
     
     localStorage.setItem(key, encryptedData);
@@ -202,9 +213,9 @@ export function loadDataFromLocalStorage<T>(key: string): T | null {
     const encrypted = localStorage.getItem(key);
     if (!encrypted) return null;
 
-    // Try to decrypt with today's key
+    // Try to decrypt with the appropriate key
     try {
-      const decrypted = CryptoJS.AES.decrypt(encrypted, getDailyEncryptionKey());
+      const decrypted = CryptoJS.AES.decrypt(encrypted, getEncryptionKeyForStorage(key));
       const decryptedString = decrypted.toString(CryptoJS.enc.Utf8);
       if (decryptedString) {
         return JSON.parse(decryptedString) as T;
