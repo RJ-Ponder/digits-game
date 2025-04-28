@@ -152,6 +152,41 @@ export const AboutModal: React.FC<ModalProps> = ({
   </div>
 );
 
+interface ResetWarningModalProps extends ModalProps {
+  onConfirm: () => void;
+}
+
+export const ResetWarningModal: React.FC<ResetWarningModalProps> = ({
+  darkMode,
+  onClose,
+  onConfirm,
+  handleModalOutsideClick
+}) => (
+  <div 
+    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+    onClick={(e) => handleModalOutsideClick(e, onClose)}
+  >
+    <div className={`${darkMode ? "bg-zinc-800" : "bg-white"} p-6 rounded-lg max-w-md w-full`}>
+      <h2 className="text-xl font-bold mb-4">⚠️ Reset Statistics?</h2>
+      <p className="mb-6">This will permanently delete all your game statistics. Are you sure you want to continue?</p>
+      <div className="flex justify-center gap-4">
+        <button
+          onClick={onClose}
+          className={`px-4 py-2 rounded-lg ${darkMode ? "bg-zinc-700 hover:bg-zinc-600" : "bg-gray-200 hover:bg-gray-300"}`}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onConfirm}
+          className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white"
+        >
+          Reset
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 // Helper Components
 const StatBox: React.FC<{ darkMode: boolean; value: number; label: string }> = ({ darkMode, value, label }) => (
   <div className={`${darkMode ? "bg-zinc-700" : "bg-zinc-100"} p-4 rounded-lg`}>

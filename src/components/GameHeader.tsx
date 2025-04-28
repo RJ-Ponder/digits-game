@@ -1,5 +1,5 @@
 import React from 'react';
-import { SunIcon, MoonIcon, QuestionMarkCircleIcon, InformationCircleIcon, FlagIcon, ChartBarIcon } from "@heroicons/react/24/solid";
+import { SunIcon, MoonIcon, QuestionMarkCircleIcon, InformationCircleIcon, EyeIcon, ChartBarIcon } from "@heroicons/react/24/solid";
 import { DailyPuzzle } from '../types';
 
 interface GameHeaderProps {
@@ -27,7 +27,7 @@ const GameHeader: React.FC<GameHeaderProps> = ({
   currentPuzzleIndex,
   onSwitchPuzzle,
 }) => (
-  <div className="w-full flex flex-col gap-4">
+  <div className="w-full flex flex-col gap-6">
     <div className="w-full flex justify-between items-center">
       <a 
         href="https://pondergames.com" 
@@ -80,10 +80,10 @@ const GameHeader: React.FC<GameHeaderProps> = ({
         <button
           onClick={onGiveUp}
           className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors duration-75"
-          aria-label="Give up"
+          aria-label="Show solution"
           disabled={!canEarnMoreStars}
         >
-          <FlagIcon className={`w-6 h-6 ${!canEarnMoreStars ? "opacity-50" : ""}`} />
+          <EyeIcon className={`w-6 h-6 ${!canEarnMoreStars ? "opacity-50" : ""}`} />
         </button>
       </div>
     </div>
@@ -106,7 +106,7 @@ const GameHeader: React.FC<GameHeaderProps> = ({
         >
           {puzzle.stars > 0 && (
             <div className="relative">
-              <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs">
+              <div className="absolute -top-7 left-1/2 transform -translate-x-1/2 text-sm">
                 {'⭐'.repeat(puzzle.stars)}
               </div>
             </div>

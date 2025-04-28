@@ -81,8 +81,8 @@ function useGameLogic() {
   const [twoStarGames, setTwoStarGames] = useState<number>(0);
   const [threeStarGames, setThreeStarGames] = useState<number>(0);
 
-  const [showSolution, setShowSolution] = useState<boolean>(false);
-  const [canEarnMoreStars, setCanEarnMoreStars] = useState<boolean>(true);
+  const [showSolution, setShowSolution] = useState<boolean>(() => currentPuzzle.solutionShown);
+  const [canEarnMoreStars, setCanEarnMoreStars] = useState<boolean>(() => !currentPuzzle.solutionShown);
   const [showCollectModal, setShowCollectModal] = useState<boolean>(false);
   const [showNewGameWarning, setShowNewGameWarning] = useState<boolean>(false);
   const [showResetWarning, setShowResetWarning] = useState<boolean>(false);
@@ -341,7 +341,7 @@ function useGameLogic() {
   }
 
   function startNewTestSet() {
-    const newPuzzles = generateDailyPuzzles(Date.now().toString());
+    const newPuzzles = generateDailyPuzzles();
     const newSet = {
       seed: Date.now().toString(),
       puzzles: newPuzzles,

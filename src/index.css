@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Handle the overscroll background colors */
+html {
+  overscroll-behavior: none;
+}
+
+html.dark-mode, html.dark-mode body {
+  background-color: #18181b; /* zinc-900 for dark mode */
+}
+
+html.light-mode, html.light-mode body {
+  background-color: #ffffff; /* white for light mode */
+}
+
 @layer base {
   html, body, #root {
     @apply min-h-screen w-full m-0 p-0;
