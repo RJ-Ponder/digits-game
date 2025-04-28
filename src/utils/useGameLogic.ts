@@ -167,27 +167,67 @@ function useGameLogic() {
       setSelectedOperator(null);
       setOperationGroup({ sign: null, function: null, result: null });
     } else {
+      // For invalid operations (like division resulting in non-integers),
+      // just shake the position and keep the first operand selected
       setShakePosition(position);
       setTimeout(() => setShakePosition(null), 200);
-      resetBoard();
+      
+      // Only reset the operator, not the first operand selection
+      setSelectedOperator(null);
+      setOperationGroup({ sign: null, function: null, result: null });
     }
   }
 
   function handleUndoClick() {
     if (currentMove > 0) {
+      // Get the previous state
       const prevSet = numberSetHistory.slice(0, -1);
       const prevHistory = moveHistory.slice(0, -1);
       const prevPositions = positionHistory.slice(0, -1);
-
-      setNumberSetHistory(prevSet);
-      setMoveHistory(prevHistory);
-      setPositionHistory(prevPositions);
-      setCurrentMove(currentMove - 1);
-
-      // Reset all selection state when undoing
-      setSelectedPosition(null);
-      setFirstOperandPosition(null);
-      setFirstOperandNumber(null);
+      
+      // Parse the last move to extract the first operand's value
+      const lastMove = moveHistory[moveHistory.length - 1];
+      
+      if (lastMove) {
+        // Extract first operand from the move string (e.g., "5 + 2 = 7")
+        const firstOperandValue = parseInt(lastMove.split(' ')[0], 10);
+        
+        // The position in the current grid where that first operand was
+        const firstOperandPos = positionHistory[positionHistory.length - 1];
+        
+        // Update the state with previous values
+        setNumberSetHistory(prevSet);
+        setMoveHistory(prevHistory);
+        setPositionHistory(prevPositions);
+        setCurrentMove(currentMove - 1);
+        
+        // Look for the first operand in the grid after undo
+        if (!isNaN(firstOperandValue) && firstOperandPos !== null && firstOperandPos !== undefined) {
+          // We need to find where this number is in the grid now
+          const currentNumbers = prevSet[prevSet.length - 1];
+          
+          // Select the position where the first operand is now
+          for (let i = 0; i < currentNumbers.length; i++) {
+            if (currentNumbers[i] === firstOperandValue) {
+              setSelectedPosition(i);
+              setFirstOperandPosition(i);
+              setFirstOperandNumber(firstOperandValue);
+              break;
+            }
+          }
+        } else {
+          resetBoard(true);
+        }
+      } else {
+        // If we can't parse the move, just reset
+        setNumberSetHistory(prevSet);
+        setMoveHistory(prevHistory);
+        setPositionHistory(prevPositions);
+        setCurrentMove(currentMove - 1);
+        resetBoard(true);
+      }
+      
+      // Always reset operator selection
       setOperationGroup({ sign: null, function: null, result: null });
       setSelectedOperator(null);
     } else {
