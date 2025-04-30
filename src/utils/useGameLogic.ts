@@ -185,45 +185,63 @@ function useGameLogic() {
       const prevHistory = moveHistory.slice(0, -1);
       const prevPositions = positionHistory.slice(0, -1);
       
+      // Get the position of the first operand that was used in the last move
+      const lastUsedPos = positionHistory[positionHistory.length - 1];
+      
       // Parse the last move to extract the first operand's value
       const lastMove = moveHistory[moveHistory.length - 1];
       
-      if (lastMove) {
+      // Update the state with previous values
+      setNumberSetHistory(prevSet);
+      setMoveHistory(prevHistory);
+      setPositionHistory(prevPositions);
+      setCurrentMove(currentMove - 1);
+      
+      if (lastMove && lastUsedPos !== null && lastUsedPos !== undefined) {
         // Extract first operand from the move string (e.g., "5 + 2 = 7")
         const firstOperandValue = parseInt(lastMove.split(' ')[0], 10);
         
-        // The position in the current grid where that first operand was
-        const firstOperandPos = positionHistory[positionHistory.length - 1];
+        // The current grid after undoing
+        const currentNumbers = prevSet[prevSet.length - 1];
         
-        // Update the state with previous values
-        setNumberSetHistory(prevSet);
-        setMoveHistory(prevHistory);
-        setPositionHistory(prevPositions);
-        setCurrentMove(currentMove - 1);
-        
-        // Look for the first operand in the grid after undo
-        if (!isNaN(firstOperandValue) && firstOperandPos !== null && firstOperandPos !== undefined) {
-          // We need to find where this number is in the grid now
-          const currentNumbers = prevSet[prevSet.length - 1];
+        // We need to specifically ensure that the position exists in the previous grid
+        // And that it contains the correct value of the operand
+        if (!isNaN(firstOperandValue)) {
+          // Track whether we found the original position
+          let foundPosition = false;
           
-          // Select the position where the first operand is now
-          for (let i = 0; i < currentNumbers.length; i++) {
-            if (currentNumbers[i] === firstOperandValue) {
-              setSelectedPosition(i);
-              setFirstOperandPosition(i);
-              setFirstOperandNumber(firstOperandValue);
-              break;
+          // First, check if the original position contains the number
+          // This happens if the two operands were swapped positions
+          if (currentNumbers[lastUsedPos] === firstOperandValue) {
+            setSelectedPosition(lastUsedPos);
+            setFirstOperandPosition(lastUsedPos);
+            setFirstOperandNumber(firstOperandValue);
+            foundPosition = true;
+          } 
+          
+          // If we couldn't reuse the original position, find the correct position
+          // This typically happens when there are duplicate numbers
+          if (!foundPosition) {
+            for (let i = 0; i < currentNumbers.length; i++) {
+              // Find the first occurrence of the number
+              if (currentNumbers[i] === firstOperandValue) {
+                setSelectedPosition(i);
+                setFirstOperandPosition(i);
+                setFirstOperandNumber(firstOperandValue);
+                foundPosition = true;
+                break;
+              }
             }
+          }
+          
+          // If still not found, reset the board (this shouldn't happen)
+          if (!foundPosition) {
+            resetBoard(true);
           }
         } else {
           resetBoard(true);
         }
       } else {
-        // If we can't parse the move, just reset
-        setNumberSetHistory(prevSet);
-        setMoveHistory(prevHistory);
-        setPositionHistory(prevPositions);
-        setCurrentMove(currentMove - 1);
         resetBoard(true);
       }
       
@@ -237,8 +255,10 @@ function useGameLogic() {
 
   function calculateStars(): number {
     const num = numberSetHistory[currentMove]?.[selectedPosition ?? 0];
+    // Check if we've actually reached the target number
     if (num !== currentPuzzle.target) return 0;
     
+    // Count the actual number operations performed (number of moves)
     const usedNumbers = moveHistory.length + 1;
     const isChain = isChainOperation();
     
@@ -252,67 +272,67 @@ function useGameLogic() {
     
     const stars = calculateStars();
     if (stars > 0 && !showSolution) {
+      // Always show the modal when stars are earned
       setShowCollectModal(true);
       
-      if (stars <= currentPuzzle.stars) {
-        return;
+      // Only update if we earned more stars than before
+      if (stars > currentPuzzle.stars) {
+        const updatedPuzzles = [...puzzleSet.puzzles];
+        updatedPuzzles[puzzleSet.currentPuzzleIndex] = {
+          ...currentPuzzle,
+          stars
+        };
+        
+        const newPuzzleSet = {
+          ...puzzleSet,
+          puzzles: updatedPuzzles
+        };
+        
+        setPuzzleSet(newPuzzleSet);
+        saveDataToLocalStorage(DAILY_PUZZLE_SET, newPuzzleSet);
+        
+        // Update daily statistics
+        const today = getTodayString();
+        const currentStats = { ...statistics }; // Create a copy to work with
+        if (!currentStats.dailyStats) {
+          currentStats.dailyStats = {}; // Initialize if undefined
+        }
+        
+        const todayStats = currentStats.dailyStats[today] || {
+          date: today,
+          puzzleStars: new Array(5).fill(0),
+          totalStars: 0,
+          isPerfect: false
+        };
+        
+        todayStats.puzzleStars[puzzleSet.currentPuzzleIndex] = stars;
+        todayStats.totalStars = todayStats.puzzleStars.reduce((a, b) => a + b, 0);
+        todayStats.isPerfect = todayStats.puzzleStars.every(s => s === 3);
+        
+        const allDailyStats = { ...currentStats.dailyStats, [today]: todayStats };
+        
+        // Calculate total stars across all days properly
+        const totalStars = Object.values(allDailyStats)
+          .reduce((total, day) => total + (day?.totalStars || 0), 0);
+        
+        const newStats: GameStatistics = {
+          ...currentStats,
+          dailyStats: allDailyStats,
+          daysPlayed: Object.keys(allDailyStats).length,
+          totalStars,
+          perfectDays: Object.values(allDailyStats)
+            .filter(day => day?.isPerfect).length,
+          lastPlayedDate: today
+        };
+        
+        // Update streaks
+        const currentStreak = calculateStreak(newStats);
+        newStats.currentStreak = currentStreak;
+        newStats.bestStreak = Math.max(currentStats.bestStreak || 0, currentStreak);
+        
+        setStatistics(newStats);
+        saveDataToLocalStorage(STATISTICS, newStats);
       }
-      
-      const updatedPuzzles = [...puzzleSet.puzzles];
-      updatedPuzzles[puzzleSet.currentPuzzleIndex] = {
-        ...currentPuzzle,
-        stars
-      };
-      
-      const newPuzzleSet = {
-        ...puzzleSet,
-        puzzles: updatedPuzzles
-      };
-      
-      setPuzzleSet(newPuzzleSet);
-      saveDataToLocalStorage(DAILY_PUZZLE_SET, newPuzzleSet);
-      
-      // Update daily statistics
-      const today = getTodayString();
-      const currentStats = { ...statistics }; // Create a copy to work with
-      if (!currentStats.dailyStats) {
-        currentStats.dailyStats = {}; // Initialize if undefined
-      }
-      
-      const todayStats = currentStats.dailyStats[today] || {
-        date: today,
-        puzzleStars: new Array(5).fill(0),
-        totalStars: 0,
-        isPerfect: false
-      };
-      
-      todayStats.puzzleStars[puzzleSet.currentPuzzleIndex] = stars;
-      todayStats.totalStars = todayStats.puzzleStars.reduce((a, b) => a + b, 0);
-      todayStats.isPerfect = todayStats.puzzleStars.every(s => s === 3);
-      
-      const allDailyStats = { ...currentStats.dailyStats, [today]: todayStats };
-      
-      // Calculate total stars across all days properly
-      const totalStars = Object.values(allDailyStats)
-        .reduce((total, day) => total + (day?.totalStars || 0), 0);
-      
-      const newStats: GameStatistics = {
-        ...currentStats,
-        dailyStats: allDailyStats,
-        daysPlayed: Object.keys(allDailyStats).length,
-        totalStars,
-        perfectDays: Object.values(allDailyStats)
-          .filter(day => day?.isPerfect).length,
-        lastPlayedDate: today
-      };
-      
-      // Update streaks
-      const currentStreak = calculateStreak(newStats);
-      newStats.currentStreak = currentStreak;
-      newStats.bestStreak = Math.max(currentStats.bestStreak || 0, currentStreak);
-      
-      setStatistics(newStats);
-      saveDataToLocalStorage(STATISTICS, newStats);
     }
   }
 
@@ -457,11 +477,19 @@ function useGameLogic() {
   }, []);
 
   function isChainOperation(): boolean {
+    // A chain operation requires using all numbers (5 moves)
     if (moveHistory.length !== 5) return false;
+    
+    // For a chain, each result must be used as the first operand in the next operation
     for (let i = 1; i < moveHistory.length; i++) {
-      const prev = moveHistory[i - 1].split('=')[1]?.trim();
-      const curr = moveHistory[i].split(' ')[0];
-      if (prev !== curr) return false;
+      // Get the result of the previous operation
+      const prevResult = moveHistory[i - 1].split('=')[1]?.trim();
+      
+      // Get the first operand of the current operation
+      const currOperand = moveHistory[i].split(' ')[0];
+      
+      // If they don't match, it's not a chain
+      if (prevResult !== currOperand) return false;
     }
     return true;
   }
